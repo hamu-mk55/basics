@@ -19,33 +19,33 @@ class DefaultParams:
 
 class IniFile:
     def __init__(self,
-                 inifile: str = None,
+                 filename: str = None,
                  logger: Logger = None):
-        self.inifile = inifile
-        self.default_params_list: list[DefaultParams] = []
+        self.filename = filename
+        self._default_params_list: list[DefaultParams] = []
 
         if logger is not None:
-            self.logger = logger
+            self._logger = logger
         else:
-            self.logger = getLogger(__name__)
+            self._logger = getLogger(__name__)
 
     def load_inifile(self) -> None:
-        self.logger.info(f'load inifile')
+        self._logger.info(f'load inifile')
 
-        if not os.path.isfile(self.inifile):
-            _msg = f'No ini-file: {self.inifile}'
-            self.logger.error(_msg)
+        if not os.path.isfile(self.filename):
+            _msg = f'No ini-file: {self.filename}'
+            self._logger.error(_msg)
             raise FileNotFoundError(_msg)
 
         _config = configparser.ConfigParser()
-        _config.read(self.inifile)
-        for _params in self.default_params_list:
+        _config.read(self.filename)
+        for _params in self._default_params_list:
             if _params.type == 'float':
                 try:
                     _val = float(_config.get(_params.section, _params.key))
                 except Exception as err:
-                    self.logger.error(f'load_inifile: {_params.name}')
-                    self.logger.error(f'load_inifile: {err}')
+                    self._logger.error(f'load_inifile: {_params.name}')
+                    self._logger.error(f'load_inifile: {err}')
                     raise ValueError(err)
 
                 exec(f'{_params.name} = {_val}')
@@ -54,21 +54,21 @@ class IniFile:
                 try:
                     _val = _config.get(_params.section, _params.key)
                 except Exception as err:
-                    self.logger.error(f'load_inifile: {_params.name}')
-                    self.logger.error(f'load_inifile: {err}')
+                    self._logger.error(f'load_inifile: {_params.name}')
+                    self._logger.error(f'load_inifile: {err}')
                     raise ValueError(err)
 
                 exec(f'{_params.name} = "{_val}"')
 
             else:
                 _msg = f'load_inifile: illegal type: {_params.name}'
-                self.logger.error(_msg)
+                self._logger.error(_msg)
                 raise ValueError(_msg)
 
     def set_default_params(self) -> None:
-        self.logger.info(f'set default')
+        self._logger.info(f'set default')
 
-        for _params in self.default_params_list:
+        for _params in self._default_params_list:
             if _params.type == 'float':
                 exec(f'{_params.name} = {_params.default_val}')
 
@@ -76,26 +76,25 @@ class IniFile:
                 exec(f'{_params.name} = "{_params.default_val}"')
             else:
                 _msg = f'load_inifile: illegal type: {_params.name}'
-                self.logger.error(_msg)
+                self._logger.error(_msg)
                 raise ValueError(_msg)
 
     def show_params(self) -> None:
-        for _params in self.default_params_list:
+        for _params in self._default_params_list:
             _val = eval(_params.name)
 
             _msg = f'{_params.name} = {_val}'
-            self.logger.info(_msg)
-            print(_msg)
+            self._logger.info(_msg)
 
     def remake_inifile(self,
                        inifile: str,
                        default_flg: bool = True) -> None:
-        self.logger.info(f'remake inifile: {inifile}')
+        self._logger.info(f'remake inifile: {inifile}')
 
         _config = configparser.ConfigParser()
 
         _section_pre = None
-        for _params in self.default_params_list:
+        for _params in self._default_params_list:
             if _params.section != _section_pre:
                 _config.add_section(_params.section)
                 _section_pre = _params.section
@@ -109,12 +108,27 @@ class IniFile:
         with open(inifile, 'w') as fw:
             _config.write(fw)
 
+    def append_param(self,
+                     name: str,
+                     section: str,
+                     key: str,
+                     default: str | float,
+                     param_type: str):
+
+        _param = DefaultParams(name=name,
+                               section=section,
+                               key=key,
+                               default_val=default,
+                               param_type=param_type)
+
+        self._default_params_list.append(_param)
+
 
 class ExampleIniFile(IniFile):
     def __init__(self,
-                 inifile: str = 'config.ini',
+                 filename: str = 'config.ini',
                  logger: Logger = None):
-        super().__init__(inifile=inifile, logger=logger)
+        super().__init__(filename=filename, logger=logger)
 
         # Define parameters as None (Recommend for IntelliSense)
         self.str = None
@@ -122,11 +136,8 @@ class ExampleIniFile(IniFile):
         # self.err = None
 
         # Define parameters
-        self.default_params_list = [
-            DefaultParams(name='self.str', section='Example', key='str', default_val='val', param_type='str'),
-            DefaultParams(name='self.float', section='Example2', key='float', default_val=10, param_type='float'),
-            # DefaultParams(name='self.err', section='Example2', key='err', default_val=10, param_type='floa')
-        ]
+        self.append_param(name='self.str', section='Example', key='str', default='val', param_type='str')
+        self.append_param(name='self.float', section='Example2', key='float', default=10, param_type='float')
 
 
 if __name__ == '__main__':

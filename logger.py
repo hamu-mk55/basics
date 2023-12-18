@@ -1,21 +1,22 @@
 import os
 import time
 import datetime
-from logging import (getLogger, Formatter, FileHandler, StreamHandler,
+from logging import (getLogger, Logger, Formatter,
+                     FileHandler, StreamHandler,
                      DEBUG, INFO, WARNING, ERROR, CRITICAL)
 
 
-class MyLogger:
+class MyLogger():
     def __init__(self,
                  log_dir: str = './log',
-                 level: int = DEBUG,
+                 level: str = 'debug',
                  filename: str = 'log_',
                  file_unit: str = 'month',
                  console_out: bool = True,
                  file_out: bool = True,
                  log_serial: str = 'MyLogger'):
         self.log_dir = log_dir
-        self.level = level
+        self.level = self._return_level(level)
         self.filename = filename
         self.file_unit = file_unit
         self.console_out = console_out
@@ -37,8 +38,8 @@ class MyLogger:
         # Setup logger
         if self.file_out:
             os.makedirs(self.log_dir, exist_ok=True)
-        self.logger = getLogger(self.log_serial)
-        self.logger.setLevel(self.level)
+        self._logger = getLogger(self.log_serial)
+        self._logger.setLevel(self.level)
 
         self.init()
 
@@ -50,8 +51,8 @@ class MyLogger:
         self.time_id = self._get_time_id()
 
         # Initialize handlers
-        for _handler in self.logger.handlers[::-1]:
-            self.logger.removeHandler(_handler)
+        for _handler in self._logger.handlers[::-1]:
+            self._logger.removeHandler(_handler)
 
         # Set File-Output
         if self.file_out:
@@ -61,14 +62,28 @@ class MyLogger:
             fh = FileHandler(self.log_file)
             fh.setLevel(self.level)
             fh.setFormatter(self.format)
-            self.logger.addHandler(fh)
+            self._logger.addHandler(fh)
 
         # Set Console-Output
         if self.console_out:
             sh = StreamHandler()
             sh.setLevel(self.level)
             sh.setFormatter(self.format)
-            self.logger.addHandler(sh)
+            self._logger.addHandler(sh)
+
+    def _return_level(self, level: str):
+        if level.lower() == 'debug':
+            return DEBUG
+        elif level.lower() == 'info':
+            return INFO
+        elif level.lower() == 'warning':
+            return WARNING
+        elif level.lower() == 'error':
+            return ERROR
+        elif level.lower() == 'critical':
+            return CRITICAL
+        else:
+            return WARNING
 
     def _get_time_id(self):
         if self.file_unit == 'month':
@@ -83,28 +98,36 @@ class MyLogger:
         if _time_id != self.time_id:
             self.init()
 
-    def debug(self, msg):
+    def debug(self, msg, **kwargs):
         self._check_time_id()
-        self.logger.debug(str(msg))
+        self._logger.debug(str(msg))
 
-    def info(self, msg):
+    def info(self, msg, **kwargs):
         self._check_time_id()
-        self.logger.info(str(msg))
+        self._logger.info(str(msg))
 
-    def warning(self, msg):
+    def warning(self, msg, **kwargs):
         self._check_time_id()
-        self.logger.warning(str(msg))
+        self._logger.warning(str(msg))
 
-    def error(self, msg):
+    def error(self, msg, **kwargs):
         self._check_time_id()
-        self.logger.error(str(msg))
+        self._logger.error(str(msg))
 
-    def critical(self, msg):
+    def critical(self, msg, **kwargs):
         self._check_time_id()
-        self.logger.critical(str(msg))
+        self._logger.critical(str(msg))
+
+    def exception(self, msg, **kwargs):
+        self._check_time_id()
+        self._logger.exception(str(msg))
+
+    def log(self, level, msg, **kwargs):
+        self._check_time_id()
+        self._logger.log(level, str(msg))
 
 def example():
-    app = MyLogger(level=INFO,
+    app = MyLogger(level='info',
                    file_unit='day',
                    console_out=True,
                    file_out=True
@@ -115,11 +138,11 @@ def example():
         app.warning('test_warn')
         app.error('test_err')
         app.critical('test_crt')
-        app.logger.critical('test_crt')
+        # app.exception('test_ex')
+        app.log(INFO, 'test_log')
 
-        time.sleep(60*30)
+        time.sleep(60 * 30)
 
 
 if __name__ == '__main__':
     example()
-
