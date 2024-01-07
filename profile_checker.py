@@ -1,7 +1,5 @@
 from line_profiler import LineProfiler
 
-from blob_analysis import example, blob_analysis
-
 
 def exam_func1(input=10):
     _ret = exam_func2(input, repeat_num=10000)
@@ -16,10 +14,18 @@ def exam_func2(input=10, repeat_num=1000):
 
 
 def check_profiler():
+    """
+    プロファイリングを実行
+    :return:
+    """
+
     prof = LineProfiler()
+
+    # register functions
     prof.add_function(exam_func1)
     prof.add_function(exam_func2)
 
+    # call
     for _ in range(10):
         prof.runcall(lambda: exam_func1(input=10))
 
