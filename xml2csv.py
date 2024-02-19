@@ -69,7 +69,7 @@ def xml2csv(data_dir: str = '.', res_file: str = 'results.csv', debug: bool = Fa
 
                     out_list.append([file_name, "3rd", child3.tag, child3.attrib, child3.text])
 
-        save_csv_list(out_list, 'results.csv')
+        save_csv_list(out_list, res_file)
 
 
 if __name__ == '__main__':
