@@ -2,6 +2,7 @@ import asyncio
 import time
 import shutil
 import os
+import threading
 
 import cv2
 import numpy as np
@@ -37,7 +38,9 @@ def save_image(img_path: str, img: np.array):
     cv2.imwrite(img_path, img)
 
 
-def example(debug: bool = False):
+def example(debug: bool = False,
+            use_asyncio: bool = True,
+            use_threading: bool = False):
     out_dir = './out'
     if os.path.isdir(out_dir):
         shutil.rmtree(out_dir)
@@ -51,8 +54,16 @@ def example(debug: bool = False):
     while True:
         cnt += 1
 
-        loop = asyncio.get_event_loop()
-        loop.run_in_executor(None, save_image, f'{out_dir}/debug_{cnt:05d}.png', img)
+        out_path = f'{out_dir}/debug_{cnt:05d}.png'
+
+        if use_asyncio:
+            loop = asyncio.get_event_loop()
+            loop.run_in_executor(None, save_image, out_path, img)
+        elif use_threading:
+            thred = threading.Thread(target=save_image, args=(out_path, img))
+            thred.start()
+        else:
+            save_image(out_path, img)
 
         timer.wait(10, dt_msec=None)
 
@@ -66,4 +77,6 @@ def example(debug: bool = False):
 
 
 if __name__ == '__main__':
-    example()
+    example(debug=True,
+            use_asyncio=False,
+            use_threading=True)
