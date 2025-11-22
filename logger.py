@@ -6,7 +6,7 @@ from logging import (getLogger, Logger, Formatter,
                      DEBUG, INFO, WARNING, ERROR, CRITICAL)
 
 
-class MyLogger():
+class CustomLogger(Logger):
     def __init__(self,
                  log_dir: str = './log',
                  level: str = 'debug',
@@ -15,6 +15,10 @@ class MyLogger():
                  console_out: bool = True,
                  file_out: bool = True,
                  log_serial: str = 'MyLogger'):
+
+        super().__init__(log_serial)
+
+        # Set Params
         self.log_dir = log_dir
         self.level = self._return_level(level)
         self.filename = filename
@@ -32,27 +36,39 @@ class MyLogger():
         else:
             _date_fmt = '%H:%M:%S'
 
-        _fmt = '%(asctime)s,%(msecs)03d,[%(levelname).4s],%(message)s'
+        _fmt = '%(asctime)s,%(msecs)03d,[%(levelname).4s],%(lineno)d,%(message)s'
         self.format = Formatter(_fmt, datefmt=_date_fmt)
 
-        # Setup logger
+        # Setup Othres
+        self.setLevel(self.level)
+
         if self.file_out:
             os.makedirs(self.log_dir, exist_ok=True)
-        self._logger = getLogger(self.log_serial)
-        self._logger.setLevel(self.level)
 
-        self.init()
+        self._setup_handlers()
 
-    def __del__(self):
-        pass
+    def _log(self, level, msg, args, **kwargs):
+        """
+        Overwrite logger functions
+        Before logging, check if date is changed
+        """
 
-    def init(self):
+        # check date
+        self._check_time_id()
+
+        # Call Logger-function
+        stacklevel = kwargs.get("stacklevel", 1)
+        kwargs["stacklevel"] = stacklevel + 1
+
+        super()._log(level, msg, args, **kwargs)
+
+    def _setup_handlers(self):
         # Set time_id
         self.time_id = self._get_time_id()
 
         # Initialize handlers
-        for _handler in self._logger.handlers[::-1]:
-            self._logger.removeHandler(_handler)
+        for _handler in self.handlers[:]:
+            self.removeHandler(_handler)
 
         # Set File-Output
         if self.file_out:
@@ -62,16 +78,17 @@ class MyLogger():
             fh = FileHandler(self.log_file)
             fh.setLevel(self.level)
             fh.setFormatter(self.format)
-            self._logger.addHandler(fh)
+            self.addHandler(fh)
 
         # Set Console-Output
         if self.console_out:
             sh = StreamHandler()
             sh.setLevel(self.level)
             sh.setFormatter(self.format)
-            self._logger.addHandler(sh)
+            self.addHandler(sh)
 
-    def _return_level(self, level: str):
+    @staticmethod
+    def _return_level(level: str):
         if level.lower() == 'debug':
             return DEBUG
         elif level.lower() == 'info':
@@ -96,42 +113,15 @@ class MyLogger():
     def _check_time_id(self):
         _time_id = self._get_time_id()
         if _time_id != self.time_id:
-            self.init()
+            self._setup_handlers()
 
-    def debug(self, msg, **kwargs):
-        self._check_time_id()
-        self._logger.debug(str(msg))
-
-    def info(self, msg, **kwargs):
-        self._check_time_id()
-        self._logger.info(str(msg))
-
-    def warning(self, msg, **kwargs):
-        self._check_time_id()
-        self._logger.warning(str(msg))
-
-    def error(self, msg, **kwargs):
-        self._check_time_id()
-        self._logger.error(str(msg))
-
-    def critical(self, msg, **kwargs):
-        self._check_time_id()
-        self._logger.critical(str(msg))
-
-    def exception(self, msg, **kwargs):
-        self._check_time_id()
-        self._logger.exception(str(msg))
-
-    def log(self, level, msg, **kwargs):
-        self._check_time_id()
-        self._logger.log(level, str(msg))
 
 def example():
-    app = MyLogger(level='info',
-                   file_unit='day',
-                   console_out=True,
-                   file_out=True
-                   )
+    app = CustomLogger(level='info',
+                       file_unit='day',
+                       console_out=True,
+                       file_out=True
+                       )
     while True:
         app.debug('test_debug')
         app.info('test_info')
